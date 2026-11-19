@@ -1,0 +1,500 @@
+diff --git a/submodules/ChannelRecoveryKit/BUILD b/submodules/ChannelRecoveryKit/BUILD
+new file mode 100644
+index 0000000..53dc946
+--- /dev/null
++++ b/submodules/ChannelRecoveryKit/BUILD
+@@ -0,0 +1,10 @@
++load("@build_bazel_rules_swift//swift:swift.bzl", "swift_library")
++
++# Copy this folder to submodules/ChannelRecoveryKit in a Telegram-iOS checkout.
++swift_library(
++    name = "ChannelRecoveryKit",
++    module_name = "ChannelRecoveryKit",
++    srcs = glob(["Sources/ChannelRecoveryKit/*.swift"]),
++    copts = ["-warnings-as-errors"],
++    visibility = ["//visibility:public"],
++)
+diff --git a/submodules/ChannelRecoveryKit/Sources/ChannelRecoveryKit/RecoveryCoordinator.swift b/submodules/ChannelRecoveryKit/Sources/ChannelRecoveryKit/RecoveryCoordinator.swift
+new file mode 100644
+index 0000000..8e0185f
+--- /dev/null
++++ b/submodules/ChannelRecoveryKit/Sources/ChannelRecoveryKit/RecoveryCoordinator.swift
+@@ -0,0 +1,137 @@
++import Foundation
++
++/// Canonical identity selected from a server-provided deletion event.
++public struct PostReference: Hashable, Sendable {
++    public let channelID: Int64
++    public let messageID: Int64
++    public let originalTimestamp: Int64
++    public init(channelID: Int64, messageID: Int64, originalTimestamp: Int64) {
++        self.channelID = channelID
++        self.messageID = messageID
++        self.originalTimestamp = originalTimestamp
++    }
++}
++
++public struct RecoveryRequest: Sendable {
++    public let post: PostReference
++    public let deletionEventID: Int64
++    public let requestID: String
++    public init(post: PostReference, deletionEventID: Int64, requestID: String) {
++        self.post = post
++        self.deletionEventID = deletionEventID
++        self.requestID = requestID
++    }
++}
++
++public struct RecoveryReceipt: Equatable, Sendable {
++    public enum Status: String, Sendable { case restored; case alreadyRestored = "already_restored" }
++    public let post: PostReference
++    public let deletionEventID: Int64
++    public let status: Status
++    public init(post: PostReference, deletionEventID: Int64, status: Status) {
++        self.post = post
++        self.deletionEventID = deletionEventID
++        self.status = status
++    }
++}
++
++public enum RecoveryFailure: Error, Equatable, Sendable {
++    case invalidRequest, invalidResponse, unavailable, permissionDenied, expired, deletionChanged, network
++    public var code: String {
++        switch self {
++        case .invalidRequest: return "INVALID_REQUEST"
++        case .invalidResponse: return "INVALID_RESTORE_RESPONSE"
++        case .unavailable: return "POST_NOT_AVAILABLE"
++        case .permissionDenied: return "ADMIN_REQUIRED"
++        case .expired: return "RECOVERY_EXPIRED"
++        case .deletionChanged: return "DELETION_CHANGED"
++        case .network: return "NETWORK_ERROR"
++        }
++    }
++}
++
++/// Production hosts implement this using their authenticated service and standard
++/// state synchronization. The reference transport uses only the local demo server.
++public protocol RecoveryTransport: Sendable {
++    func restore(_ request: RecoveryRequest) async throws -> RecoveryReceipt
++}
++
++/// Framework-independent recovery coordinator, shared by the running demo and
++/// the Telegram integration adapter. Never generates a new message or a timestamp.
++public actor RecoveryCoordinator {
++    private struct Key: Hashable { let post: PostReference; let event: Int64 }
++    private struct Operation { let id: UUID; let task: Task<RecoveryReceipt, Error> }
++    private let transport: any RecoveryTransport
++    private let timeoutNanoseconds: UInt64
++    private var requests: [Key: String] = [:]
++    private var pending: [Key: Operation] = [:]
++
++    public init(transport: any RecoveryTransport, timeoutNanoseconds: UInt64 = 15_000_000_000) {
++        precondition(timeoutNanoseconds > 0)
++        self.transport = transport
++        self.timeoutNanoseconds = timeoutNanoseconds
++    }
++
++    /// Reuses a UUID for retries of one deletion generation, and shares concurrent
++    /// in-flight work. Completed successes are not cached: later calls must check
++    /// current permissions and deletion generation on the server again.
++    public func restore(_ post: PostReference, deletionEventID: Int64, requestID: String? = nil) async throws -> RecoveryReceipt {
++        guard post.channelID != 0, post.messageID > 0, post.originalTimestamp > 0, deletionEventID > 0 else {
++            throw RecoveryFailure.invalidRequest
++        }
++        let key = Key(post: post, event: deletionEventID)
++        let id = requestID ?? requests[key] ?? UUID().uuidString
++        guard !id.isEmpty, id.utf8.count <= 128, requests[key] == nil || requests[key] == id else {
++            throw RecoveryFailure.invalidRequest
++        }
++        requests[key] = id
++        let operation: Operation
++        if let existing = pending[key] {
++            operation = existing
++        } else {
++            let transport = self.transport
++            let timeout = self.timeoutNanoseconds
++            let request = RecoveryRequest(post: post, deletionEventID: deletionEventID, requestID: id)
++            operation = Operation(id: UUID(), task: Task {
++                let receipt = try await Self.perform(request, transport: transport, timeout: timeout)
++                guard receipt.post == post, receipt.deletionEventID == deletionEventID else {
++                    throw RecoveryFailure.invalidResponse
++                }
++                return receipt
++            })
++            pending[key] = operation
++        }
++        defer {
++            if pending[key]?.id == operation.id { pending[key] = nil }
++        }
++        // Cancelling a waiter cannot roll back a server transaction or cancel a
++        // shared request needed by another waiter. Hosts must refresh to reconcile.
++        return try await operation.task.value
++    }
++
++    /// A task group would wait forever for a transport that ignores cancellation.
++    /// This stream races the response against a deadline without waiting for that
++    /// transport to stop. A timeout is uncertain, never a rollback: retry the UUID.
++    private static func perform(_ request: RecoveryRequest, transport: any RecoveryTransport, timeout: UInt64) async throws -> RecoveryReceipt {
++        let responses = AsyncThrowingStream<RecoveryReceipt, Error> { continuation in
++            let work = Task {
++                do {
++                    continuation.yield(try await transport.restore(request))
++                    continuation.finish()
++                } catch { continuation.finish(throwing: error) }
++            }
++            let deadline = Task {
++                do {
++                    try await Task.sleep(nanoseconds: timeout)
++                    continuation.finish(throwing: RecoveryFailure.network)
++                } catch { /* The response won; the deadline is no longer needed. */ }
++            }
++            continuation.onTermination = { @Sendable _ in
++                work.cancel()
++                deadline.cancel()
++            }
++        }
++        for try await receipt in responses { return receipt }
++        throw RecoveryFailure.invalidResponse
++    }
++}
+diff --git a/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/BUILD b/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/BUILD
+index 5e8fad0..e0a8af1 100644
+--- a/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/BUILD
++++ b/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/BUILD
+@@ -10,6 +10,7 @@ swift_library(
+         "-warnings-as-errors",
+     ],
+     deps = [
++        "//submodules/ChannelRecoveryKit",
+         "//submodules/TelegramUI/Components/OpenUserGeneratedUrl:OpenUserGeneratedUrl",
+         "//submodules/UrlWhitelist",
+         "//submodules/AccountContext",
+diff --git a/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChannelPostRecovery.swift b/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChannelPostRecovery.swift
+new file mode 100644
+index 0000000..4d837cc
+--- /dev/null
++++ b/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChannelPostRecovery.swift
+@@ -0,0 +1,94 @@
++import Foundation
++import SwiftSignalKit
++import TelegramCore
++import AccountContext
++
++/// Installed by the app composition root once its authenticated server transport
++/// is available. Normal Recent Actions navigation resolves the current account
++/// and channel through this factory; no controller call-site changes are needed.
++/// Return nil for an account/channel without advertised server capability.
++public enum ChannelPostRecoveryIntegration {
++    public typealias ProviderFactory = (AccountContext, EnginePeer) -> ChannelPostRecoveryProvider?
++
++    // Lock protects registration. Factories are invoked only on the UI thread,
++    // outside the lock, and receive the current account instead of cached peers.
++    private final class Storage: @unchecked Sendable {
++        let lock = NSLock()
++        var factory: ProviderFactory?
++    }
++    private static let storage = Storage()
++
++    public static func install(providerFactory: ProviderFactory?) {
++        storage.lock.lock()
++        storage.factory = providerFactory
++        storage.lock.unlock()
++    }
++
++    static func provider(context: AccountContext, peer: EnginePeer) -> ChannelPostRecoveryProvider? {
++        precondition(Thread.isMainThread)
++        storage.lock.lock()
++        let factory = storage.factory
++        storage.lock.unlock()
++        return factory?(context, peer)
++    }
++}
++
++/// Integration boundary for a proposed server-supported recovery operation.
++/// The current public Telegram API has no channel-post restore operation.
++/// A host must provide this only after its server advertises this capability.
++public protocol ChannelPostRecoveryProvider: AnyObject {
++    var maximumRecoveryAge: Int32 { get }
++    var strings: ChannelPostRecoveryStrings { get }
++
++    /// True only for an event the server reports as recoverable. A cached
++    /// capability is only a presentation hint; restorePost must check again.
++    func canOfferRecovery(messageId: EngineMessage.Id, deletionEventId: Int64) -> Bool
++
++    /// Revalidate authorization, the deletion event and retention on the server.
++    /// Return only after canonical storage and client synchronization have committed.
++    /// Never implement using sendMessage, forwardMessages or local Postbox insertion.
++    /// Use a finite request timeout and return errors on the signal, never silent completion.
++    func restorePost(messageId: EngineMessage.Id, deletionEventId: Int64, originalTimestamp: Int32, requestId: String) -> Signal<ChannelPostRecoveryResult, ChannelPostRecoveryError>
++}
++
++public struct ChannelPostRecoveryResult {
++    public let messageId: EngineMessage.Id
++    public let originalTimestamp: Int32
++
++    public init(messageId: EngineMessage.Id, originalTimestamp: Int32) {
++        self.messageId = messageId
++        self.originalTimestamp = originalTimestamp
++    }
++}
++
++public enum ChannelPostRecoveryError: Error {
++    case unavailable
++    case permissionDenied
++    case expired
++    case deletionChanged
++    case network
++    case invalidResponse
++}
++
++/// Supplied by the host's localization layer; no hard-coded language in the node.
++public struct ChannelPostRecoveryStrings {
++    public let restore: String
++    public let confirmation: String
++    public let restored: String
++    public let permissionDenied: String
++    public let expired: String
++    public let deletionChanged: String
++    public let unavailable: String
++    public let network: String
++
++    public init(restore: String, confirmation: String, restored: String, permissionDenied: String, expired: String, deletionChanged: String, unavailable: String, network: String) {
++        self.restore = restore
++        self.confirmation = confirmation
++        self.restored = restored
++        self.permissionDenied = permissionDenied
++        self.expired = expired
++        self.deletionChanged = deletionChanged
++        self.unavailable = unavailable
++        self.network = network
++    }
++}
+diff --git a/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChannelPostRecoveryPolicy.swift b/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChannelPostRecoveryPolicy.swift
+new file mode 100644
+index 0000000..838e8fc
+--- /dev/null
++++ b/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChannelPostRecoveryPolicy.swift
+@@ -0,0 +1,10 @@
++/// Local display gate only. The server remains authoritative about expiry.
++enum ChannelPostRecoveryPolicy {
++    static func isWithinWindow(deletionTimestamp: Int32, localTimestamp: Int64, maximumAge: Int32) -> Bool {
++        guard maximumAge > 0, localTimestamp >= Int64(deletionTimestamp) else {
++            return false
++        }
++        // Avoid subtraction overflow for malformed local clock values.
++        return localTimestamp < Int64(deletionTimestamp) + Int64(maximumAge)
++    }
++}
+diff --git a/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChatRecentActionsController.swift b/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChatRecentActionsController.swift
+index 5df34c1..6ce1399 100644
+--- a/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChatRecentActionsController.swift
++++ b/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChatRecentActionsController.swift
+@@ -22,6 +22,7 @@ public final class ChatRecentActionsController: TelegramBaseController {
+     private let context: AccountContext
+     private let peer: EnginePeer
+     private let initialAdminPeerId: EnginePeer.Id?
++    private let postRecovery: ChannelPostRecoveryProvider?
+     let starsState: StarsRevenueStats?
+     
+     private var presentationData: PresentationData
+@@ -40,11 +41,12 @@ public final class ChatRecentActionsController: TelegramBaseController {
+     
+     private var adminsDisposable: Disposable?
+     
+-    public init(context: AccountContext, peer: EnginePeer, adminPeerId: EnginePeer.Id?, starsState: StarsRevenueStats?) {
++    public init(context: AccountContext, peer: EnginePeer, adminPeerId: EnginePeer.Id?, starsState: StarsRevenueStats?, postRecovery: ChannelPostRecoveryProvider? = nil) {
+         self.context = context
+         self.peer = peer
+         self.initialAdminPeerId = adminPeerId
+         self.starsState = starsState
++        self.postRecovery = postRecovery ?? ChannelPostRecoveryIntegration.provider(context: context, peer: peer)
+         
+         self.presentationData = context.sharedContext.currentPresentationData.with { $0 }
+         
+@@ -284,7 +286,7 @@ public final class ChatRecentActionsController: TelegramBaseController {
+     }
+     
+     override public func loadDisplayNode() {
+-        self.displayNode = ChatRecentActionsControllerNode(context: self.context, controller: self, peer: self.peer._asPeer(), presentationData: self.presentationData, pushController: { [weak self] c in
++        self.displayNode = ChatRecentActionsControllerNode(context: self.context, controller: self, peer: self.peer._asPeer(), presentationData: self.presentationData, postRecovery: self.postRecovery, pushController: { [weak self] c in
+             (self?.navigationController as? NavigationController)?.pushViewController(c)
+         }, presentController: { [weak self] c, t, a in
+             self?.present(c, in: t, with: a, blockInteraction: true)
+diff --git a/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChatRecentActionsControllerNode.swift b/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChatRecentActionsControllerNode.swift
+index 00062b6..f69ba44 100644
+--- a/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChatRecentActionsControllerNode.swift
++++ b/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ChatRecentActionsControllerNode.swift
+@@ -208,6 +208,11 @@ private final class RecentActionsGlassTextButtonView: UIView {
+ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
+     private let context: AccountContext
+     private let peer: EngineRawPeer
++    private let postRecovery: ChannelPostRecoveryProvider?
++    private let recoveryDisposables = DisposableSet()
++    private var recoveringEvents = Set<Int64>()
++    private var restoredEvents = Set<Int64>()
++    private var recoveryRequestIds: [Int64: String] = [:]
+     private var presentationData: PresentationData
+     
+     private let pushController: (ViewController) -> Void
+@@ -273,10 +278,11 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
+     
+     private weak var controller: ChatRecentActionsController?
+     
+-    init(context: AccountContext, controller: ChatRecentActionsController, peer: EngineRawPeer, presentationData: PresentationData, pushController: @escaping (ViewController) -> Void, presentController: @escaping (ViewController, PresentationContextType, Any?) -> Void, getNavigationController: @escaping () -> NavigationController?) {
++    init(context: AccountContext, controller: ChatRecentActionsController, peer: EngineRawPeer, presentationData: PresentationData, postRecovery: ChannelPostRecoveryProvider?, pushController: @escaping (ViewController) -> Void, presentController: @escaping (ViewController, PresentationContextType, Any?) -> Void, getNavigationController: @escaping () -> NavigationController?) {
+         self.context = context
+         self.controller = controller
+         self.peer = peer
++        self.postRecovery = postRecovery
+         self.presentationData = presentationData
+         self.pushController = pushController
+         self.presentController = presentController
+@@ -953,6 +959,7 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
+     }
+     
+     deinit {
++        self.recoveryDisposables.dispose()
+         self.historyDisposable?.dispose()
+         self.navigationActionDisposable.dispose()
+         self.galleryHiddenMesageAndMediaDisposable.dispose()
+@@ -1339,6 +1346,27 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
+             )
+         }
+         
++        if let recovery = self.postRecovery,
++           let channel = self.peer as? TelegramChannel,
++           case .broadcast = channel.info,
++           channel.hasPermission(.deleteAllMessages),
++           let state = self.listNode.opaqueTransactionState as? ChatRecentActionsListOpaqueState,
++           let entry = state.entries.first(where: { $0.entry.stableId == message.stableId }),
++           case let .deleteMessage(original) = entry.entry.event.action,
++           original.id.peerId == self.peer.id,
++           recovery.canOfferRecovery(messageId: original.id, deletionEventId: entry.entry.event.id),
++           !self.restoredEvents.contains(entry.entry.event.id),
++           !self.recoveringEvents.contains(entry.entry.event.id),
++           ChannelPostRecoveryPolicy.isWithinWindow(deletionTimestamp: entry.entry.event.date, localTimestamp: Int64(Date().timeIntervalSince1970), maximumAge: recovery.maximumRecoveryAge) {
++            let eventId = entry.entry.event.id
++            actions.append(.action(ContextMenuActionItem(text: recovery.strings.restore, icon: { theme in
++                return UIImage(systemName: "arrow.uturn.backward")?.withTintColor(theme.contextMenu.primaryColor, renderingMode: .alwaysOriginal)
++            }, action: { [weak self] _, completion in
++                completion(.default)
++                self?.performPostRecovery(original: original, eventId: eventId)
++            })))
++        }
++
+         if let author = message.author, let adminsState = self.adminsState {
+             var canBan = author.id != self.context.account.peerId
+             if let channel = self.peer as? TelegramChannel {
+@@ -1439,6 +1467,53 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
+         controller.window?.presentInGlobalOverlay(contextController)
+     }
+     
++    private func showPostRecoveryMessage(_ text: String) {
++        self.presentController(textAlertController(context: self.context, updatedPresentationData: self.controller?.updatedPresentationData, title: nil, text: text, actions: [TextAlertAction(type: .defaultAction, title: self.presentationData.strings.Common_OK, action: {})]), .window(.root), nil)
++    }
++
++    private func performPostRecovery(original: EngineRawMessage, eventId: Int64) {
++        guard let recovery = self.postRecovery, !self.recoveringEvents.contains(eventId), !self.restoredEvents.contains(eventId) else {
++            return
++        }
++        self.recoveringEvents.insert(eventId)
++        let requestId = self.recoveryRequestIds[eventId] ?? UUID().uuidString
++        self.recoveryRequestIds[eventId] = requestId
++        var receivedResult = false
++        self.recoveryDisposables.add((recovery.restorePost(messageId: original.id, deletionEventId: eventId, originalTimestamp: original.timestamp, requestId: requestId)
++        |> take(1)
++        |> deliverOnMainQueue).start(next: { [weak self] result in
++            guard let self else { return }
++            receivedResult = true
++            self.recoveringEvents.remove(eventId)
++            guard result.messageId == original.id, result.originalTimestamp == original.timestamp else {
++                self.showPostRecoveryMessage(recovery.strings.unavailable)
++                return
++            }
++            self.restoredEvents.insert(eventId)
++            // Only the server's standard updates may restore Postbox history.
++            // Navigate to the canonical original, preserving its date/order.
++            self.context.sharedContext.navigateToChat(accountId: self.context.account.id, peerId: original.id.peerId, messageId: original.id)
++        }, error: { [weak self] error in
++            guard let self else { return }
++            self.recoveringEvents.remove(eventId)
++            let text: String
++            switch error {
++            case .permissionDenied: text = recovery.strings.permissionDenied
++            case .expired: text = recovery.strings.expired
++            case .deletionChanged: text = recovery.strings.deletionChanged
++            case .network: text = recovery.strings.network
++            case .unavailable, .invalidResponse: text = recovery.strings.unavailable
++            }
++            self.showPostRecoveryMessage(text)
++        }, completed: { [weak self] in
++            guard let self else { return }
++            self.recoveringEvents.remove(eventId)
++            if !receivedResult {
++                self.showPostRecoveryMessage(recovery.strings.unavailable)
++            }
++        }))
++    }
++
+     private func updateItemNodesHighlightedStates(animated: Bool) {
+         self.listNode.forEachItemNode { itemNode in
+             if let itemNode = itemNode as? ChatMessageItemView {
+diff --git a/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ModuleChannelPostRecoveryProvider.swift b/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ModuleChannelPostRecoveryProvider.swift
+new file mode 100644
+index 0000000..984e69f
+--- /dev/null
++++ b/submodules/TelegramUI/Components/Chat/ChatRecentActionsController/Sources/ModuleChannelPostRecoveryProvider.swift
+@@ -0,0 +1,53 @@
++import Foundation
++import ChannelRecoveryKit
++import SwiftSignalKit
++import TelegramCore
++
++/// Connects the existing Telegram Recent Actions UI to the same coordinator used
++/// by the runnable demo. The host supplies its supported, authenticated transport.
++/// Never attach ReferenceRecoveryTransport to messages from a live Telegram account.
++public final class ModuleChannelPostRecoveryProvider: ChannelPostRecoveryProvider {
++    public let maximumRecoveryAge: Int32
++    public let strings: ChannelPostRecoveryStrings
++    private let coordinator: RecoveryCoordinator
++    private let eligibility: (EngineMessage.Id, Int64) -> Bool
++
++    public init(transport: any RecoveryTransport, maximumRecoveryAge: Int32, strings: ChannelPostRecoveryStrings, eligibility: @escaping (EngineMessage.Id, Int64) -> Bool) {
++        self.coordinator = RecoveryCoordinator(transport: transport)
++        self.maximumRecoveryAge = maximumRecoveryAge
++        self.strings = strings
++        self.eligibility = eligibility
++    }
++
++    public func canOfferRecovery(messageId: EngineMessage.Id, deletionEventId: Int64) -> Bool {
++        self.eligibility(messageId, deletionEventId)
++    }
++
++    public func restorePost(messageId: EngineMessage.Id, deletionEventId: Int64, originalTimestamp: Int32, requestId: String) -> Signal<ChannelPostRecoveryResult, ChannelPostRecoveryError> {
++        let coordinator = self.coordinator
++        let reference = PostReference(channelID: messageId.peerId.id._internalGetInt64Value(), messageID: Int64(messageId.id), originalTimestamp: Int64(originalTimestamp))
++        return Signal { subscriber in
++            let task = Task {
++                do {
++                    _ = try await coordinator.restore(reference, deletionEventID: deletionEventId, requestID: requestId)
++                    guard !Task.isCancelled else { return }
++                    subscriber.putNext(ChannelPostRecoveryResult(messageId: messageId, originalTimestamp: originalTimestamp))
++                    subscriber.putCompletion()
++                } catch {
++                    guard !Task.isCancelled else { return }
++                    let mapped: ChannelPostRecoveryError
++                    switch error as? RecoveryFailure {
++                    case .permissionDenied: mapped = .permissionDenied
++                    case .expired: mapped = .expired
++                    case .deletionChanged: mapped = .deletionChanged
++                    case .invalidRequest, .invalidResponse: mapped = .invalidResponse
++                    case .unavailable: mapped = .unavailable
++                    case .network, .none: mapped = .network
++                    }
++                    subscriber.putError(mapped)
++                }
++            }
++            return ActionDisposable { task.cancel() }
++        }
++    }
++}

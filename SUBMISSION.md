@@ -1,0 +1,13 @@
+# Submission message
+
+Hello Telegram Designers,
+
+Restore Channel Post adds Restore to the context menu of deleted channel posts in Recent Actions. Administrators can recover a post within 48 hours of deletion, with its original message ID, publication date, time and position in the channel. It is the same post, not a new publication. Text, photos and playable video messages are demonstrated.
+
+The source archive contains runnable iPhone and Mac reference apps, a shared Swift recovery module, a persistent Python/SQLite backend, tests, build scripts and a separate patch for Telegram iOS's existing Recent Actions screen.
+
+Recovery checks current permissions, expiry and the specific deletion event. Retries and concurrent requests do not create duplicate posts. The client validates the returned identity and refreshes authoritative history before showing success.
+
+Integration scope: the runnable apps use the included local backend. Deployment to live channels requires Telegram's server-side restore operation, authenticated transport and synchronization. The native Telegram-iOS patch is supplied and has application/source-consistency/syntax checks; the full upstream client has not been built or run.
+
+Verification: 64 automated checks, native Swift–HTTP–SQLite integration, and both standalone host builds. Reviewer instructions and implementation boundaries are included. The demo video is supplied separately.

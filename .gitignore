@@ -1,0 +1,12 @@
+__pycache__/
+*.sqlite*
+dist/
+release/
+*.zip
+*.sha256
+
+module/.build/
+module/.swiftpm/
+.DS_Store
+.env
+*.session*
