@@ -1,0 +1,342 @@
+[
+  {
+    "path": ".github/workflows/verify.yml",
+    "bytes": 615,
+    "sha256": "33e3fbd9bfab81eb405ca39d2b65b410d88da333cac08b4d2a7f51782e688d9b"
+  },
+  {
+    "path": ".gitignore",
+    "bytes": 112,
+    "sha256": "1aef4d350d46fdfcf43d0d5bc072cc6f686fb7a38af0a92912fdeb89553ccd9d"
+  },
+  {
+    "path": "API-CONTRACT.md",
+    "bytes": 3480,
+    "sha256": "73e502bd65fe23854a20a7d5675be5c638613e08365e70ec411255defd67b5ae"
+  },
+  {
+    "path": "CODE-STATUS.md",
+    "bytes": 3991,
+    "sha256": "cb637ab2ac99db08314c2f2263868f731359766cbb83a4826b7be8315233414e"
+  },
+  {
+    "path": "DEMO-SCENARIO.md",
+    "bytes": 4531,
+    "sha256": "0bc9ef4b67f82ff5df1077ff0026aa4371e7c1dce41ba8509f7cd46fcb610899"
+  },
+  {
+    "path": "INTEGRATION.md",
+    "bytes": 6124,
+    "sha256": "419401d502792936194c022a0e6d60158d5196ec361f46b061e91a99caac064c"
+  },
+  {
+    "path": "IOS-SETUP.md",
+    "bytes": 3226,
+    "sha256": "4295d4fdb423f66841412cafc5ada3418a1a72d5db355a299aa62e4ef475c640"
+  },
+  {
+    "path": "LICENSE.md",
+    "bytes": 1450,
+    "sha256": "8fa10872519b0d6f858c7daa4010b6c455198cb96d41614c350d6fdc4d231d30"
+  },
+  {
+    "path": "NOTICE.md",
+    "bytes": 801,
+    "sha256": "3379e460b04e8633c94c8b7d82d856cd8847efbaf1d3c4a961899921c7941245"
+  },
+  {
+    "path": "QA-REPORT.md",
+    "bytes": 3492,
+    "sha256": "425148866604bf064dd877d78137d69805945302d6f0526ae4b00117d8c87e47"
+  },
+  {
+    "path": "README-EN.md",
+    "bytes": 3261,
+    "sha256": "8212394a7b45bc257defad1c9bb173b77eec0f57407f61f580b80a20159808f5"
+  },
+  {
+    "path": "README.md",
+    "bytes": 5877,
+    "sha256": "c509b9ae835fd0ed6b727eef2fa86836a8e9a5763a6364e9473b6137f08682e2"
+  },
+  {
+    "path": "SUBMISSION-CHECKLIST.md",
+    "bytes": 1127,
+    "sha256": "3fee5339071a18cccd9be239a7bcc3524f9af106eb154f47d2f9c8536424afce"
+  },
+  {
+    "path": "SUBMISSION.md",
+    "bytes": 1427,
+    "sha256": "724494b77a62a22c2439182d004c6ecdd98dc360a358930d3283bd2a6e957efd"
+  },
+  {
+    "path": "Start Demo.command",
+    "bytes": 178,
+    "sha256": "d9a2a4e396c9fd05a07ab492cbf29edd0ae340b9f557a12e432f6155d2de4a2d"
+  },
+  {
+    "path": "VERSION.txt",
+    "bytes": 4,
+    "sha256": "d2e181481b9515797bc42f282b122d2529d24ea985125bd5c95ded5004e0c7c9"
+  },
+  {
+    "path": "VIDEO-GUIDE.md",
+    "bytes": 1286,
+    "sha256": "ca7412452cd70a045d706923475d2064c90dc06f70bd3cd3180c64d36593a179"
+  },
+  {
+    "path": "app/Resources/media/demo-circle.mov",
+    "bytes": 772520,
+    "sha256": "2a8b208c3a74061d3ac816db77982bbd204a7ae8a3c4dff1ea9daa2ea120c163"
+  },
+  {
+    "path": "app/Resources/media/demo-photo.png",
+    "bytes": 1544619,
+    "sha256": "ccea1a554bf5bd4761cea003c7f4df0549437d6bded5bad2924e2bcfcaeedd6d"
+  },
+  {
+    "path": "app/Sources/App.swift",
+    "bytes": 823,
+    "sha256": "c22dcdeb567edc5d23cbe55e800581ebd706ccc7b47c9015088c6e95987bea75"
+  },
+  {
+    "path": "app/Sources/DemoHost.swift",
+    "bytes": 2621,
+    "sha256": "2876d1c2e43ae1698ce19c55f067d6195988116918a79a8c9e0e13196c5ada1f"
+  },
+  {
+    "path": "app/Sources/RecoveryModel.swift",
+    "bytes": 10227,
+    "sha256": "1f5bf268692ccabcd6f500daf325ec7c6b019a9cdc01874d9af83823b99cf548"
+  },
+  {
+    "path": "app/Sources/RecoveryView.swift",
+    "bytes": 22959,
+    "sha256": "6220eb88998a911ac3cc447949eb54ef39abeb0aa258a3484d0d3ab4b5dd762b"
+  },
+  {
+    "path": "build-ios-demo.sh",
+    "bytes": 2623,
+    "sha256": "64a167936682c74d5ef245a05baf3b986a2eb92c10563a11d91aab30e9fe9cec"
+  },
+  {
+    "path": "build.sh",
+    "bytes": 1909,
+    "sha256": "14dc3762bef845f62240d18cf4b040777367833ffcaf8ea43d9d584f9b5a4b5e"
+  },
+  {
+    "path": "ios/Sources/ChannelPostRecovery.swift",
+    "bytes": 3872,
+    "sha256": "e8aba160f764badffc141601ee5e33d3755fdfc31ee42388010d4dc2f371934b"
+  },
+  {
+    "path": "ios/Sources/ChannelPostRecoveryPolicy.swift",
+    "bytes": 490,
+    "sha256": "208c6a8f1d4ff3b8e952904a886704bf87ad45be865ff162025eb5f00cd797e4"
+  },
+  {
+    "path": "ios/Sources/ChatRecentActionsController.swift",
+    "bytes": 19846,
+    "sha256": "4d89a83ba244ae9a451b7b1442581d5fef5be46d4ca6758eb468583496544361"
+  },
+  {
+    "path": "ios/Sources/ChatRecentActionsControllerNode.swift",
+    "bytes": 115894,
+    "sha256": "c1a177263c8bc36e027409b1236c9e97e6fd7671cb68c234c9b138dcfa183309"
+  },
+  {
+    "path": "ios/Sources/ModuleChannelPostRecoveryProvider.swift",
+    "bytes": 2778,
+    "sha256": "e24e3719c73b5c576fbb54a7677205916e4276c92dfe101d90e894064a348f34"
+  },
+  {
+    "path": "ios/UPSTREAM.txt",
+    "bytes": 99,
+    "sha256": "14635a47224b21074fdcadf827ca9161255885c30b8c49109cf6ad2379c1f925"
+  },
+  {
+    "path": "ios/channel-post-recovery.patch",
+    "bytes": 26365,
+    "sha256": "8676923e52e09a92569f96335e6d9908ee515f5a9273562c928e2bea6eec54c6"
+  },
+  {
+    "path": "ios-demo/App.swift",
+    "bytes": 2235,
+    "sha256": "397d5a26664c8ed9c427e366933ab8cf5a13e1d3fa00fe3384c915ede57a2de2"
+  },
+  {
+    "path": "ios-demo/PhoneRecoveryComponents.swift",
+    "bytes": 5504,
+    "sha256": "d9479a17f64cca4b6fc0ac2889e137a36264e3f83b6a9e797226c3358586d5b5"
+  },
+  {
+    "path": "ios-demo/TelegramRecoveryView.swift",
+    "bytes": 41998,
+    "sha256": "33a89097274ae3b60420dbc45ed1705c2a911bcf866f0af8bfc068f54a81aba8"
+  },
+  {
+    "path": "module/BUILD",
+    "bytes": 374,
+    "sha256": "2218fdc1a6559fa36e47180ba0400bafd87efa71bfbd0269ad5143dfd457a6f0"
+  },
+  {
+    "path": "module/Checks/RecoveryKitChecks.swift",
+    "bytes": 7797,
+    "sha256": "4cea153b4d3d5ec62f1ed7085649f32fd245bb8612aeab62ca8a0501ede37520"
+  },
+  {
+    "path": "module/Package.swift",
+    "bytes": 524,
+    "sha256": "f488a7953b00557f5e15ef4f47dbcdecd848e1f66d1b7c686f86a78ca9dbf690"
+  },
+  {
+    "path": "module/README.md",
+    "bytes": 2265,
+    "sha256": "1318e4df6492a5238a1fe96ed0154a575d6c70c9effe68b6d2bdee2b6c44a85c"
+  },
+  {
+    "path": "module/Sources/ChannelRecoveryKit/RecoveryCoordinator.swift",
+    "bytes": 6141,
+    "sha256": "a1beb30d3dd3a23a16f74d07c284cd92e50514969808a1b2093b5018316d974d"
+  },
+  {
+    "path": "module/Sources/ChannelRecoveryKit/ReferenceClient.swift",
+    "bytes": 6040,
+    "sha256": "81e51595c6204dfb98a7389b49f734a4de83b68282257d4f76d78c4ab693c0be"
+  },
+  {
+    "path": "module/Sources/ChannelRecoveryKit/ReferenceTransport.swift",
+    "bytes": 2443,
+    "sha256": "d44f66a664402674a9732f8cade59a000ffe2a5bf5bdff38ba1659008815c9a8"
+  },
+  {
+    "path": "run-ios-demo.sh",
+    "bytes": 116,
+    "sha256": "697e77b66c2e408e7c4c268c1027b8e0806a3bd66b0a38e9f89f8df77a938869"
+  },
+  {
+    "path": "server/demo.py",
+    "bytes": 925,
+    "sha256": "ade66059ae49d033b4bb8f78558cfa5222835c6c55bafb95f1a642269a57b1bd"
+  },
+  {
+    "path": "server/http_api.py",
+    "bytes": 13603,
+    "sha256": "e47bc234191e79598ef5e9809d2f2f83fb88246a054a0a15e7613078940a7866"
+  },
+  {
+    "path": "server/recovery.py",
+    "bytes": 11087,
+    "sha256": "22b9db86fcddc9d2d07ca4e9cc638dfba1c454e15385fc3172c48e2d290c1e55"
+  },
+  {
+    "path": "submission/FEATURE-EN.md",
+    "bytes": 2392,
+    "sha256": "141b37d45fd3851d8d83cd88d9bda7d1df9bdb16ffa8048c682f21966dbdef68"
+  },
+  {
+    "path": "submission/MESSAGE-EN.txt",
+    "bytes": 1405,
+    "sha256": "7fe112b943360067216b20820406c09ea6b2c8b3968c434292cb5c0cdf7efd3f"
+  },
+  {
+    "path": "submission/MESSAGE-RU.txt",
+    "bytes": 2250,
+    "sha256": "737cd85bb1c429bf021df38efd64a4bb1a14b1af12ae745b26aca3fa4f05496d"
+  },
+  {
+    "path": "submission/REQUIREMENTS-RU.md",
+    "bytes": 2125,
+    "sha256": "8f6b976f9053325615518569649ce788b9da99a689791b8ff7adeabe59b9d4bb"
+  },
+  {
+    "path": "submission/REVIEWER-EN.md",
+    "bytes": 3669,
+    "sha256": "8f2977d3760dc6663fb1194edaea317233fb3feb09fed8cfe7f71754104e805d"
+  },
+  {
+    "path": "submission/SEND-RU.md",
+    "bytes": 2404,
+    "sha256": "7239d66c81ae9ab9c61dfdc7526e453647447d1b8130f115bb65206cbd429f7f"
+  },
+  {
+    "path": "tests/ClientSmokeTests.swift",
+    "bytes": 4630,
+    "sha256": "50bef567c064349729eca6d9cd45e3cd1bbfb1c75e735f9cbf4b13dc34328082"
+  },
+  {
+    "path": "tests/ModelFlowTests.swift",
+    "bytes": 6981,
+    "sha256": "f8d95143b465900bba264e51c61a25b5ef99139717bc3c0a34f60e19a11e0fbd"
+  },
+  {
+    "path": "tests/PolicyTests.swift",
+    "bytes": 894,
+    "sha256": "dcbab9ee5c05574f40662004b53f03eaf307aef73ddfb599a2081b60edd7c77b"
+  },
+  {
+    "path": "tests/test_http.py",
+    "bytes": 11016,
+    "sha256": "bf61a733161f28963cf61df6207c03e247866ed6f53b8157158f9a5585076956"
+  },
+  {
+    "path": "tests/test_server.py",
+    "bytes": 7190,
+    "sha256": "d411e8ae5003d4a3599e7be27edd60114d60f68cf3723da52a3a8b6cdaf4738f"
+  },
+  {
+    "path": "tools/CropDemoCapture.swift",
+    "bytes": 2418,
+    "sha256": "6903279f72cff3dc0aad012750dbe2b4c0971f6aa7315f06f9790c7a41b136f3"
+  },
+  {
+    "path": "tools/GenerateMedia.swift",
+    "bytes": 4403,
+    "sha256": "34fb53008755f484e37667984885857e75d08d41a723e169c550a973bd55df80"
+  },
+  {
+    "path": "tools/ImportAnimatedPortrait.swift",
+    "bytes": 4465,
+    "sha256": "f0c1d1db82487c6aeb319e8b4967bcd7e0c7b79508b665d9b2d4d782a02b6d3d"
+  },
+  {
+    "path": "tools/package.py",
+    "bytes": 1992,
+    "sha256": "f9958165b9e108cae52d56be5af90c2efd6efe4deb8c91eae75edb42e207db5a"
+  },
+  {
+    "path": "tools/prepare_repository.py",
+    "bytes": 2728,
+    "sha256": "b84e1618fadf51092eea9a41c613d32ccb780cca3427e4447805f8534a1b780d"
+  },
+  {
+    "path": "tools/run_client_test.py",
+    "bytes": 1016,
+    "sha256": "0c27178c0f7c29e1a8959f10092feb4bcc5b67b94a60da2bb3038ffd34aac076"
+  },
+  {
+    "path": "tools/run_ios_demo.py",
+    "bytes": 2109,
+    "sha256": "b6b000299f81624dc6fe6d3e7c3493079627663131724d27948260bca9964dc5"
+  },
+  {
+    "path": "tools/sign_reference_app.py",
+    "bytes": 1364,
+    "sha256": "8dec2780e51f4498199fa0c61290f65f5d2d556e2c9adf5957543b04e8b5526e"
+  },
+  {
+    "path": "tools/source_files.py",
+    "bytes": 1127,
+    "sha256": "8ddc3c59cf28c7016fffbc3c1fa9bfa9cf72e5639bd60d31bd726e9f15fff590"
+  },
+  {
+    "path": "tools/verify_native_patch.py",
+    "bytes": 3040,
+    "sha256": "2338fe22f028fdeedfa03cc23e401ebf08a775714843751f2c24e43f7afeb243"
+  },
+  {
+    "path": "verify.sh",
+    "bytes": 1270,
+    "sha256": "a60d528c6e9882b95e8adac62f02c0e08bad475c3388cd7621eb32b6b6fb294e"
+  }
+]
